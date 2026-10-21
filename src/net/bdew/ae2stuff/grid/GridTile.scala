@@ -67,9 +67,9 @@ trait GridTile extends TileExtended with IGridHost with IGridBlock {
   override def invalidate(): Unit = {
     import scala.collection.JavaConversions._
 
-    if (worldObj != null && !worldObj.isRemote) {
+    if (getWorldObj != null && !getWorldObj.isRemote) {
       for {
-        player <- worldObj.playerEntities.collect { case p: EntityPlayer => p }
+        player <- getWorldObj.playerEntities.collect { case p: EntityPlayer => p }
         if player.openContainer.inventorySlots.exists { case slot: Slot => slot.inventory eq this }
       } player.closeScreen()
     }
