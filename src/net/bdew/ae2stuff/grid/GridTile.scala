@@ -15,13 +15,13 @@ import appeng.api.AEApi
 import appeng.api.networking._
 import appeng.api.networking.events.MENetworkEvent
 import appeng.api.util.{AECableType, AEColor, DimensionalCoord}
-import appeng.core.WorldSettings
 import appeng.me.GridAccessException
 import cpw.mods.fml.common.FMLCommonHandler
 import net.bdew.lib.items.ItemUtils
 import net.bdew.lib.tile.TileExtended
 import net.bdew.lib.tile.inventory.BreakableInventoryTile
 import net.minecraft.entity.player.EntityPlayer
+import net.minecraft.inventory.Slot
 import net.minecraft.item.ItemStack
 import net.minecraftforge.common.util.ForgeDirection
 
@@ -34,7 +34,7 @@ trait GridTile extends TileExtended with IGridHost with IGridBlock {
   serverTick.listen(() => {
     if (!initialized) {
       if (placingPlayer != null)
-        getNode.setPlayerID(WorldSettings.getInstance().getPlayerID(placingPlayer.getGameProfile))
+        getNode.setPlayerID(Security.getPlayerId(placingPlayer))
       getNode.updateState()
       initialized = true
     }
@@ -63,12 +63,25 @@ trait GridTile extends TileExtended with IGridHost with IGridBlock {
     }
   }
 
+  private def closeOpenContainers(): Unit = {
+    import scala.collection.JavaConversions._
+
+    if (getWorldObj != null && !getWorldObj.isRemote) {
+      for {
+        player <- getWorldObj.playerEntities.collect { case p: EntityPlayer => p }
+        if player.openContainer.inventorySlots.exists { case slot: Slot => slot.inventory eq this }
+      } player.closeScreen()
+    }
+  }
+
   override def invalidate(): Unit = {
+    closeOpenContainers()
     unRegisterNode()
     super.invalidate()
   }
 
   override def onChunkUnload(): Unit = {
+    closeOpenContainers()
     unRegisterNode()
     super.onChunkUnload()
   }

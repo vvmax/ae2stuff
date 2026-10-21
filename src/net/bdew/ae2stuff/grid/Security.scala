@@ -9,20 +9,24 @@
 
 package net.bdew.ae2stuff.grid
 
+import appeng.api.AEApi
 import appeng.api.config.SecurityPermissions
 import appeng.api.networking.security.ISecurityGrid
 import appeng.api.networking.{IGrid, IGridNode}
-import appeng.core.WorldSettings
 import com.mojang.authlib.GameProfile
 import net.minecraft.entity.player.EntityPlayer
 
 object Security {
-  def getPlayerId(p: GameProfile): Int = WorldSettings.getInstance().getPlayerID(p)
+  def getPlayerId(p: GameProfile): Int = AEApi.instance().registries().players().getID(p)
   def getPlayerId(e: EntityPlayer): Int = getPlayerId(e.getGameProfile)
 
-  def getSecurityId(n: IGridNode) = {
-    // Reflection hackery - this is not available via the API
-    n.getClass.getField("lastSecurityKey").get(n).asInstanceOf[Long]
+  def getSecurityId(n: IGridNode): Long = {
+    // Not exposed by IGridNode: rv3 has a getter, rv2 has a public field.
+    try {
+      n.getClass.getMethod("getLastSecurityKey").invoke(n).asInstanceOf[Long]
+    } catch {
+      case _: NoSuchMethodException => n.getClass.getField("lastSecurityKey").getLong(n)
+    }
   }
 
   def playerHasPermission(grid: IGrid, playerID: Int, permission: SecurityPermissions): Boolean = {

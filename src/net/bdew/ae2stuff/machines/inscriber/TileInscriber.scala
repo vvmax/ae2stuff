@@ -11,7 +11,7 @@ package net.bdew.ae2stuff.machines.inscriber
 
 import appeng.api.AEApi
 import appeng.api.config.Upgrades
-import appeng.api.features.{IInscriberRecipe, InscriberProcessType}
+import appeng.api.features.{IInscriberRecipe, IInscriberRegistry, InscriberProcessType}
 import appeng.api.networking.GridNotification
 import net.bdew.ae2stuff.grid.{GridTile, PoweredTile}
 import net.bdew.ae2stuff.misc.UpgradeInventory
@@ -124,8 +124,14 @@ class TileInscriber extends TileDataSlots with GridTile with SidedInventory with
 
   import scala.collection.JavaConversions._
 
+  // AE2 versions expose getRecipes with either a List or Collection return type.
+  private lazy val getRecipesMethod = classOf[IInscriberRegistry].getMethod("getRecipes")
+
+  private def inscriberRecipes =
+    getRecipesMethod.invoke(AEApi.instance().registries().inscriber()).asInstanceOf[java.util.Collection[IInscriberRecipe]]
+
   def findFinalRecipe: Option[IInscriberRecipe] =
-    AEApi.instance().registries().inscriber().getRecipes find isMatchingFullRecipe
+    inscriberRecipes find isMatchingFullRecipe
 
   def isMatchingFullRecipe(rec: IInscriberRecipe) = getStackInSlot(slots.middle) != null &&
     ItemUtils.isSameItem(rec.getTopOptional.orNull(), getStackInSlot(slots.top)) &&
@@ -148,7 +154,7 @@ class TileInscriber extends TileDataSlots with GridTile with SidedInventory with
   }
 
   def isValidPartialRecipe(top: Option[ItemStack], middle: Option[ItemStack], bottom: Option[ItemStack]): Boolean = {
-    AEApi.instance().registries().inscriber().getRecipes.exists(rec => isMatchingPartialRecipe(rec, top, middle, bottom))
+    inscriberRecipes.exists(rec => isMatchingPartialRecipe(rec, top, middle, bottom))
   }
 
   override def isItemValidForSlot(slot: Int, stack: ItemStack) = slot match {
