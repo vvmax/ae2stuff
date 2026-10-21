@@ -64,7 +64,7 @@ trait GridTile extends TileExtended with IGridHost with IGridBlock {
     }
   }
 
-  override def invalidate(): Unit = {
+  private def closeOpenContainers(): Unit = {
     import scala.collection.JavaConversions._
 
     if (getWorldObj != null && !getWorldObj.isRemote) {
@@ -73,11 +73,16 @@ trait GridTile extends TileExtended with IGridHost with IGridBlock {
         if player.openContainer.inventorySlots.exists { case slot: Slot => slot.inventory eq this }
       } player.closeScreen()
     }
+  }
+
+  override def invalidate(): Unit = {
+    closeOpenContainers()
     unRegisterNode()
     super.invalidate()
   }
 
   override def onChunkUnload(): Unit = {
+    closeOpenContainers()
     unRegisterNode()
     super.onChunkUnload()
   }
