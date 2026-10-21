@@ -22,6 +22,7 @@ import net.bdew.lib.items.ItemUtils
 import net.bdew.lib.tile.TileExtended
 import net.bdew.lib.tile.inventory.BreakableInventoryTile
 import net.minecraft.entity.player.EntityPlayer
+import net.minecraft.inventory.Slot
 import net.minecraft.item.ItemStack
 import net.minecraftforge.common.util.ForgeDirection
 
@@ -64,6 +65,14 @@ trait GridTile extends TileExtended with IGridHost with IGridBlock {
   }
 
   override def invalidate(): Unit = {
+    import scala.collection.JavaConversions._
+
+    if (worldObj != null && !worldObj.isRemote) {
+      for {
+        player <- worldObj.playerEntities.collect { case p: EntityPlayer => p }
+        if player.openContainer.inventorySlots.exists { case slot: Slot => slot.inventory eq this }
+      } player.closeScreen()
+    }
     unRegisterNode()
     super.invalidate()
   }
